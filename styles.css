@@ -1,0 +1,106 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button {
+    padding: 8px 12px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #3367d6;
+}
+
+input[type="number"], input[type="color"] {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+input[type="file"] {
+    max-width: 200px;
+}
+
+.grid-container {
+    position: relative;
+    overflow: auto;
+    margin-top: 20px;
+    border: 1px solid #ddd;
+}
+
+.grid {
+    display: grid;
+    background-color: white;
+}
+
+.cell {
+    border: 1px solid #ddd;
+    background-color: white;
+    transition: background-color 0.1s;
+}
+
+.cell:hover {
+    background-color: rgba(66, 133, 244, 0.1);
+}
+
+.cell.filled {
+    background-color: black;
+}
+
+.cell.highlight-col {
+    border-left: 1px solid #888;
+    border-right: 1px solid #888;
+}
+
+.cell.highlight-row {
+    border-top: 1px solid #888;
+    border-bottom: 1px solid #888;
+}
+
+.cell.crosshair-h, .cell.crosshair-v {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
+.cell.filled.crosshair-h, .cell.filled.crosshair-v {
+    /* Ensure the cell color is visible but with crosshair tint */
+    background-color: rgba(255, 0, 0, 0.2);
+    background-blend-mode: overlay;
+}
+
+.text-input {
+    margin-top: 15px;
+    display: none;
+}

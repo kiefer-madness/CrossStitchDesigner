@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross Stich Designer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Pixel Grid Editor</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="gridWidth">Width:</label>
+                <input type="number" id="gridWidth" min="5" max="100" value="16">
+            </div>
+            
+            <div class="control-group">
+                <label for="gridHeight">Height:</label>
+                <input type="number" id="gridHeight" min="5" max="100" value="16">
+            </div>
+            
+            <div class="control-group">
+                <label for="cellSize">Cell Size:</label>
+                <input type="number" id="cellSize" min="5" max="50" value="25">
+            </div>
+            
+            <div class="control-group">
+                <label for="drawColor">Color:</label>
+                <input type="color" id="drawColor" value="#000000">
+            </div>
+            
+            <button id="createGridBtn">Create Grid</button>
+            <button id="clearGridBtn">Clear Grid</button>
+            <button id="toggleCrosshairBtn">Toggle Crosshair</button>
+        </div>
+        
+        <div class="font-controls">
+            <div class="control-group">
+                <label for="fontFile">Bitmap Font:</label>
+                <input type="file" id="fontFile" accept=".fnt,.bdf,.json">
+                <button id="toggleTextMode">Text Mode</button>
+            </div>
+            
+            <div class="text-input" id="textInputContainer">
+                <label for="textInput">Text to Draw:</label>
+                <input type="text" id="textInput" placeholder="Enter text...">
+                <button id="drawTextBtn">Draw Text</button>
+            </div>
+        </div>
+        
+        <div class="grid-container" id="gridContainer">
+            <div class="grid" id="pixelGrid"></div>
+        </div>
+    </div>
+</body>
+<script src="script.js"></script>
+</html>
