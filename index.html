@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cross Stich Designer</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Cross Stitch Designer</title>
 </head>
+<link rel="stylesheet" href="styles.css">
 <body>
     <div class="container">
-        <h1>Pixel Grid Editor</h1>
+        <h1>Cross Stitch Designer</h1>
         
         <div class="controls">
             <div class="control-group">
                 <label for="gridWidth">Width:</label>
-                <input type="number" id="gridWidth" min="5" max="100" value="16">
+                <input type="number" id="gridWidth" min="5" max="100" value="80">
             </div>
             
             <div class="control-group">
                 <label for="gridHeight">Height:</label>
-                <input type="number" id="gridHeight" min="5" max="100" value="16">
+                <input type="number" id="gridHeight" min="5" max="100" value="80">
             </div>
             
             <div class="control-group">
                 <label for="cellSize">Cell Size:</label>
-                <input type="number" id="cellSize" min="5" max="50" value="25">
+                <input type="number" id="cellSize" min="5" max="50" value="12">
             </div>
             
             <div class="control-group">
@@ -38,16 +38,25 @@
         
         <div class="font-controls">
             <div class="control-group">
-                <label for="fontFile">Bitmap Font:</label>
-                <input type="file" id="fontFile" accept=".fnt,.bdf,.json">
+                <label for="fontFile">Font File:</label>
+                <input type="file" id="fontFile" accept=".ttf,.otf">
                 <button id="toggleTextMode">Text Mode</button>
             </div>
-            
-            <div class="text-input" id="textInputContainer">
-                <label for="textInput">Text to Draw:</label>
-                <input type="text" id="textInput" placeholder="Enter text...">
-                <button id="drawTextBtn">Draw Text</button>
+            <div class="control-group">
+                <label for="fontSize">Font Size:</label>
+                <input type="number" id="fontSize" min="8" max="72" value="24">
             </div>
+        </div>
+        
+        <div class="text-input" id="textInputContainer">
+            <h3>Text Elements</h3>
+            <button id="addTextElementBtn">Add Text Element</button>
+            
+            <div id="textElementsContainer">
+                <!-- Text elements will be added here dynamically -->
+            </div>
+            
+            <button id="drawAllTextBtn">Draw All Text</button>
         </div>
         
         <div class="grid-container" id="gridContainer">

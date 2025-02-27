@@ -54,6 +54,62 @@ input[type="file"] {
     max-width: 200px;
 }
 
+textarea {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    resize: vertical;
+}
+
+.position-controls {
+    margin: 10px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+select {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.text-element {
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.text-element-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.text-element-title {
+    font-weight: bold;
+    margin: 0;
+}
+
+.delete-element-btn {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+#textElementsContainer {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
 .grid-container {
     position: relative;
     overflow: auto;

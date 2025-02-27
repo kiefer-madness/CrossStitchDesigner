@@ -1,4 +1,14 @@
+// Wait for the document to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded");
+    
+    // Application state
+    let grid = [];
+    let isDragging = false;
+    let isCrosshairVisible = false;
+    let currentBitmapFont = null;
+    let textElements = [];
+    
     // DOM Elements
     const gridWidthInput = document.getElementById('gridWidth');
     const gridHeightInput = document.getElementById('gridHeight');
@@ -10,29 +20,104 @@ document.addEventListener('DOMContentLoaded', function() {
     const pixelGrid = document.getElementById('pixelGrid');
     const gridContainer = document.getElementById('gridContainer');
     const fontFileInput = document.getElementById('fontFile');
+    const fontSizeInput = document.getElementById('fontSize');
     const toggleTextModeBtn = document.getElementById('toggleTextMode');
     const textInputContainer = document.getElementById('textInputContainer');
-    const textInput = document.getElementById('textInput');
-    const drawTextBtn = document.getElementById('drawTextBtn');
+    const addTextElementBtn = document.getElementById('addTextElementBtn');
+    const textElementsContainer = document.getElementById('textElementsContainer');
+    const drawAllTextBtn = document.getElementById('drawAllTextBtn');
     
-    // Application state
-    let grid = [];
-    let isDragging = false;
-    let isCrosshairVisible = false;
-    let currentBitmapFont = null;
+    console.log("Add Text Element Button:", addTextElementBtn);
     
-    // Initialize
-    createGridBtn.addEventListener('click', createGrid);
-    clearGridBtn.addEventListener('click', clearGrid);
-    toggleCrosshairBtn.addEventListener('click', toggleCrosshair);
-    fontFileInput.addEventListener('change', loadBitmapFont);
-    toggleTextModeBtn.addEventListener('click', toggleTextMode);
-    drawTextBtn.addEventListener('click', drawText);
+    // Create an off-screen canvas for font rendering
+    const offscreenCanvas = document.createElement('canvas');
+    const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: true });
     
-    // Create initial grid
-    createGrid();
+    // Function to toggle cell fill
+    function toggleCellFill(cell) {
+        if (!cell.classList.contains('filled')) {
+            cell.classList.add('filled');
+            cell.style.backgroundColor = drawColorInput.value;
+        } else {
+            cell.classList.remove('filled');
+            cell.style.backgroundColor = '';
+        }
+    }
     
-    // Functions
+    // Function to clear grid
+    function clearGrid() {
+        const cells = document.querySelectorAll('.cell.filled');
+        cells.forEach(cell => {
+            cell.classList.remove('filled');
+            cell.style.backgroundColor = '';
+        });
+    }
+    
+    // Function to toggle crosshair
+    function toggleCrosshair() {
+        isCrosshairVisible = !isCrosshairVisible;
+        updateCrosshair();
+    }
+    
+    // Function to update crosshair
+    function updateCrosshair() {
+        const width = parseInt(gridWidthInput.value);
+        const height = parseInt(gridHeightInput.value);
+        
+        // Calculate center position
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
+        
+        // Remove existing crosshair classes
+        document.querySelectorAll('.cell.crosshair-h, .cell.crosshair-v').forEach(cell => {
+            cell.classList.remove('crosshair-h', 'crosshair-v');
+        });
+        
+        if (isCrosshairVisible) {
+            // Add crosshair to middle row
+            for (let x = 0; x < width; x++) {
+                if (grid[centerY] && grid[centerY][x]) {
+                    grid[centerY][x].classList.add('crosshair-h');
+                }
+            }
+            
+            // Add crosshair to middle column
+            for (let y = 0; y < height; y++) {
+                if (grid[y] && grid[y][centerX]) {
+                    grid[y][centerX].classList.add('crosshair-v');
+                }
+            }
+        }
+    }
+    
+    // Function to load bitmap font
+    function loadBitmapFont(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                // Create a font face from the TTF data
+                const fontFace = new FontFace('CustomFont', e.target.result);
+                
+                // Add the font to the document
+                fontFace.load().then(function(loadedFace) {
+                    document.fonts.add(loadedFace);
+                    currentBitmapFont = 'CustomFont';
+                    alert('Font loaded successfully!');
+                    toggleTextModeBtn.disabled = false;
+                }).catch(function(error) {
+                    alert('Error loading font: ' + error.message);
+                });
+            } catch (error) {
+                alert('Error processing font: ' + error.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    // Function to create grid
     function createGrid() {
         const width = parseInt(gridWidthInput.value);
         const height = parseInt(gridHeightInput.value);
@@ -84,153 +169,206 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('mouseup', function() {
             isDragging = false;
         });
-    }
-    
-    function toggleCellFill(cell) {
-        if (!cell.classList.contains('filled')) {
-            cell.classList.add('filled');
-            cell.style.backgroundColor = drawColorInput.value;
-        } else {
-            cell.classList.remove('filled');
-            cell.style.backgroundColor = '';
+        
+        // Update position input max values based on grid size
+        // Update any existing text elements with new grid boundaries
+        if (textElements.length > 0) {
+            textElements.forEach(element => {
+                const xInput = document.getElementById(`x-${element.id}`);
+                const yInput = document.getElementById(`y-${element.id}`);
+                
+                if (xInput) xInput.max = width - 1;
+                if (yInput) yInput.max = height - 1;
+                
+                // Ensure positions are within new grid bounds
+                element.x = Math.min(element.x, width - 1);
+                element.y = Math.min(element.y, height - 1);
+                
+                if (xInput) xInput.value = element.x;
+                if (yInput) yInput.value = element.y;
+            });
         }
     }
     
-    function clearGrid() {
-        const cells = document.querySelectorAll('.cell.filled');
-        cells.forEach(cell => {
-            cell.classList.remove('filled');
-            cell.style.backgroundColor = '';
-        });
-    }
-    
-    function toggleCrosshair() {
-        isCrosshairVisible = !isCrosshairVisible;
-        updateCrosshair();
-    }
-    
-    function updateCrosshair() {
-        const width = parseInt(gridWidthInput.value);
-        const height = parseInt(gridHeightInput.value);
-        
-        // Calculate center position
-        const centerX = Math.floor(width / 2);
-        const centerY = Math.floor(height / 2);
-        
-        // Remove existing crosshair classes
-        document.querySelectorAll('.cell.crosshair-h, .cell.crosshair-v').forEach(cell => {
-            cell.classList.remove('crosshair-h', 'crosshair-v');
-        });
-        
-        if (isCrosshairVisible) {
-            // Add crosshair to middle row
-            for (let x = 0; x < width; x++) {
-                if (grid[centerY] && grid[centerY][x]) {
-                    grid[centerY][x].classList.add('crosshair-h');
-                }
-            }
-            
-            // Add crosshair to middle column
-            for (let y = 0; y < height; y++) {
-                if (grid[y] && grid[y][centerX]) {
-                    grid[y][centerX].classList.add('crosshair-v');
-                }
-            }
-        }
-    }
-    
-    function loadBitmapFont(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                // For this example, assume a simple JSON format for the bitmap font
-                // In a production app, you'd want to support multiple formats (.fnt, .bdf, etc.)
-                const fontData = JSON.parse(e.target.result);
-                currentBitmapFont = fontData;
-                alert('Bitmap font loaded successfully!');
-                toggleTextModeBtn.disabled = false;
-            } catch (error) {
-                alert('Error loading bitmap font: ' + error.message);
-            }
-        };
-        reader.readAsText(file);
-    }
-    
+    // Function to toggle text mode
     function toggleTextMode() {
         if (currentBitmapFont) {
             textInputContainer.style.display = textInputContainer.style.display === 'none' || !textInputContainer.style.display ? 'block' : 'none';
+            
+            // If there are no text elements, add one by default
+            if (textElements.length === 0) {
+                addTextElement();
+            }
         } else {
-            alert('Please load a bitmap font first');
+            alert('Please load a font first');
         }
     }
     
-    function drawText() {
+    // Function to add a new text element
+    function addTextElement() {
+        console.log("Adding new text element");
+        
         if (!currentBitmapFont) {
-            alert('Please load a bitmap font first');
+            alert('Please load a font first');
             return;
         }
         
-        const text = textInput.value;
-        if (!text) {
-            alert('Please enter some text to draw');
-            return;
-        }
+        // Create a unique ID for the element
+        const elementId = Date.now();
         
-        // This is a placeholder implementation
-        // In a real app, you would parse the bitmap font file and render the text
-        // For this example, let's just show how it might work with a simple mock
-        
-        // Mock font data (you'd get this from the loaded font file)
-        const mockFont = {
-            'A': [
-                [0,1,0],
-                [1,0,1],
-                [1,1,1],
-                [1,0,1],
-                [1,0,1]
-            ],
-            'B': [
-                [1,1,0],
-                [1,0,1],
-                [1,1,0],
-                [1,0,1],
-                [1,1,0]
-            ],
-            // Add more characters as needed
+        // Create element data object
+        const textElement = {
+            id: elementId,
+            text: '',
+            x: Math.floor(parseInt(gridWidthInput.value) / 2),
+            y: Math.floor(parseInt(gridHeightInput.value) / 2),
+            alignment: 'center',
+            fontSize: parseInt(fontSizeInput.value)
         };
         
-        // Starting position
-        let posX = 1;
-        let posY = 1;
+        // Add to array
+        textElements.push(textElement);
+        
+        // Create the DOM element
+        const element = document.createElement('div');
+        element.className = 'text-element';
+        element.id = `text-element-${elementId}`;
+        
+        element.innerHTML = `
+            <div class="text-element-header">
+                <h4 class="text-element-title">Text Element ${textElements.length}</h4>
+                <button class="delete-element-btn" data-id="${elementId}">Delete</button>
+            </div>
+            <div class="control-group">
+                <label for="text-${elementId}">Text:</label>
+                <input type="text" id="text-${elementId}" class="text-input-field" data-id="${elementId}" value="">
+            </div>
+            <div class="position-controls">
+                <div class="control-group">
+                    <label for="x-${elementId}">X:</label>
+                    <input type="number" id="x-${elementId}" class="x-input" min="0" max="${parseInt(gridWidthInput.value) - 1}" value="${textElement.x}" data-id="${elementId}">
+                </div>
+                <div class="control-group">
+                    <label for="y-${elementId}">Y:</label>
+                    <input type="number" id="y-${elementId}" class="y-input" min="0" max="${parseInt(gridHeightInput.value) - 1}" value="${textElement.y}" data-id="${elementId}">
+                </div>
+                <div class="control-group">
+                    <label for="align-${elementId}">Align:</label>
+                    <select id="align-${elementId}" class="align-input" data-id="${elementId}">
+                        <option value="left">Left</option>
+                        <option value="center" selected>Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        
+        // Add to container
+        textElementsContainer.appendChild(element);
+        
+        // Add event listeners for input changes
+        const textInput = document.getElementById(`text-${elementId}`);
+        const xInput = document.getElementById(`x-${elementId}`);
+        const yInput = document.getElementById(`y-${elementId}`);
+        const alignInput = document.getElementById(`align-${elementId}`);
+        const deleteBtn = element.querySelector('.delete-element-btn');
+        
+        textInput.addEventListener('input', function(e) {
+            const id = parseInt(e.target.dataset.id);
+            const element = textElements.find(el => el.id === id);
+            if (element) element.text = e.target.value;
+        });
+        
+        xInput.addEventListener('input', function(e) {
+            const id = parseInt(e.target.dataset.id);
+            const element = textElements.find(el => el.id === id);
+            if (element) element.x = parseInt(e.target.value);
+        });
+        
+        yInput.addEventListener('input', function(e) {
+            const id = parseInt(e.target.dataset.id);
+            const element = textElements.find(el => el.id === id);
+            if (element) element.y = parseInt(e.target.value);
+        });
+        
+        alignInput.addEventListener('change', function(e) {
+            const id = parseInt(e.target.dataset.id);
+            const element = textElements.find(el => el.id === id);
+            if (element) element.alignment = e.target.value;
+        });
+        
+        deleteBtn.addEventListener('click', function(e) {
+            const id = parseInt(e.target.dataset.id);
+            deleteTextElement(id);
+        });
+        
+        // Focus the text input
+        textInput.focus();
+    }
+    
+    // Function to delete a text element
+    function deleteTextElement(id) {
+        // Remove from array
+        textElements = textElements.filter(el => el.id !== id);
+        
+        // Remove from DOM
+        const element = document.getElementById(`text-element-${id}`);
+        if (element) {
+            element.remove();
+        }
+        
+        // Redraw if needed
+        drawAllText();
+    }
+    
+    // Function to draw all text elements
+    function drawAllText() {
+        if (!currentBitmapFont || textElements.length === 0) {
+            return;
+        }
         
         // Clear grid first
         clearGrid();
         
-        // Draw each character
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i].toUpperCase();
-            if (mockFont[char]) {
-                drawCharacter(mockFont[char], posX, posY);
-                posX += mockFont[char][0].length + 1; // Add space between characters
-            } else {
-                posX += 3; // Space for unknown characters
-            }
-        }
-    }
-    
-    function drawCharacter(charData, startX, startY) {
-        for (let y = 0; y < charData.length; y++) {
-            for (let x = 0; x < charData[y].length; x++) {
-                if (charData[y][x] === 1) {
-                    const gridX = startX + x;
-                    const gridY = startY + y;
-                    
-                    // Check if the position is within grid boundaries
-                    if (gridY < grid.length && gridX < grid[0].length) {
-                        const cell = grid[gridY][gridX];
+        // Use canvas to render text and get pixel data
+        const gridWidth = parseInt(gridWidthInput.value);
+        const gridHeight = parseInt(gridHeightInput.value);
+        
+        // Set canvas size to match grid dimensions
+        offscreenCanvas.width = gridWidth;
+        offscreenCanvas.height = gridHeight;
+        
+        // Clear canvas
+        offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+        
+        // Draw each text element to the canvas
+        textElements.forEach(element => {
+            if (!element.text) return; // Skip empty text
+            
+            // Set font and text properties
+            offscreenCtx.fillStyle = 'black';
+            offscreenCtx.font = `${element.fontSize}px ${currentBitmapFont}`;
+            offscreenCtx.textBaseline = 'top';
+            offscreenCtx.textAlign = element.alignment;
+            
+            // Draw the text at its position
+            offscreenCtx.fillText(element.text, element.x, element.y);
+        });
+        
+        // Get image data
+        const imageData = offscreenCtx.getImageData(0, 0, gridWidth, gridHeight);
+        const pixels = imageData.data;
+        
+        // Draw pixels to grid with a moderate threshold
+        for (let y = 0; y < gridHeight; y++) {
+            for (let x = 0; x < gridWidth; x++) {
+                // Calculate index in pixel array (4 values per pixel: R,G,B,A)
+                const index = (y * gridWidth + x) * 4;
+                
+                // Use a moderate threshold that worked well in earlier versions
+                if (pixels[index + 3] > 50) {
+                    if (grid[y] && grid[y][x]) {
+                        const cell = grid[y][x];
                         cell.classList.add('filled');
                         cell.style.backgroundColor = drawColorInput.value;
                     }
@@ -238,4 +376,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+    
+    // Attach event listeners
+    createGridBtn.addEventListener('click', createGrid);
+    clearGridBtn.addEventListener('click', clearGrid);
+    toggleCrosshairBtn.addEventListener('click', toggleCrosshair);
+    fontFileInput.addEventListener('change', loadBitmapFont);
+    toggleTextModeBtn.addEventListener('click', toggleTextMode);
+    
+    if (addTextElementBtn) {
+        addTextElementBtn.addEventListener('click', function() {
+            console.log("Button clicked");
+            addTextElement();
+        });
+        console.log("Attached event listener to Add Text Element button");
+    } else {
+        console.error("Add Text Element button not found");
+    }
+    
+    if (drawAllTextBtn) {
+        drawAllTextBtn.addEventListener('click', drawAllText);
+    } else {
+        console.error("Draw All Text button not found");
+    }
+    
+    // Create initial grid
+    createGrid();
 });
