@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Application state
     let grid = [];
     let isDragging = false;
-    let isCrosshairVisible = false;
+    let isCrosshairVisible = true;
     let currentBitmapFont = null;
     let textElements = [];
     
@@ -147,6 +147,10 @@ document.addEventListener('DOMContentLoaded', function() {
         pixelGrid.style.gridTemplateColumns = `repeat(${width}, ${cellSize}px)`;
         pixelGrid.style.gridTemplateRows = `repeat(${height}, ${cellSize}px)`;
         
+        // Calculate center positions
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
+        
         // Create cells
         for (let y = 0; y < height; y++) {
             grid[y] = [];
@@ -154,9 +158,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 
-                // Highlight every 5th row/column
-                if ((x + 1) % 5 === 0) cell.classList.add('highlight-col');
-                if ((y + 1) % 5 === 0) cell.classList.add('highlight-row');
+                // Highlight every 5th column/row FROM CENTER
+                if ((x - centerX) % 5 === 0) cell.classList.add('highlight-col');
+                if ((y - centerY) % 5 === 0) cell.classList.add('highlight-row');
                 
                 cell.dataset.x = x;
                 cell.dataset.y = y;
@@ -296,7 +300,8 @@ document.addEventListener('DOMContentLoaded', function() {
             x: startPosition.x,
             y: startPosition.y,
             alignment: 'left',
-            fontSize: parseInt(fontSizeInput.value)
+            fontSize: parseInt(fontSizeInput.value),
+            collapsed: false
         };
         
         // Add to array
@@ -308,32 +313,43 @@ document.addEventListener('DOMContentLoaded', function() {
         element.id = `text-element-${elementId}`;
         
         element.innerHTML = `
-            <div class="text-element-header">
-                <h4 class="text-element-title">Text Element ${textElements.length}</h4>
-                <button class="delete-element-btn" data-id="${elementId}">Delete</button>
+            <div class="text-element-header" data-id="${elementId}">
+                <div class="text-element-title-container">
+                    <span class="collapse-indicator">▼</span>
+                    <h4 class="text-element-title" id="title-${elementId}">Text Element ${textElements.length}</h4>
+                </div>
+                <button class="delete-element-btn" data-id="${elementId}">
+                    <div class="trash-icon">
+                        <div class="trash-icon-body"></div>
+                        <div class="trash-icon-line"></div>
+                        <div class="trash-icon-line"></div>
+                        <div class="trash-icon-line"></div>
+                    </div>
+                </button>
             </div>
-            <div class="control-group">
-                <label for="text-${elementId}">Text:</label>
-                <input type="text" id="text-${elementId}" class="text-input-field" data-id="${elementId}" value="">
-            </div>
-            <div class="control-group">
-                <label for="align-${elementId}">Align:</label>
-                <select id="align-${elementId}" class="align-input" data-id="${elementId}">
-                    <option value="left" selected>Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                </select>
-            </div>
-            <div class="control-label">Position:</div>
-            <div class="position-display">
-                Coordinates: <span id="pos-display-${elementId}" class="coords-display">${textElement.x}, ${textElement.y}</span>
-            </div>
-            <div class="direction-controls" data-id="${elementId}">
-                <button class="direction-btn up" data-direction="up" data-id="${elementId}">↑</button>
-                <button class="direction-btn left" data-direction="left" data-id="${elementId}">←</button>
-                <div class="direction-btn center">•</div>
-                <button class="direction-btn right" data-direction="right" data-id="${elementId}">→</button>
-                <button class="direction-btn down" data-direction="down" data-id="${elementId}">↓</button>
+            <div class="text-element-content">
+                <div class="control-group">
+                    <label for="text-${elementId}">Text:</label>
+                    <input type="text" id="text-${elementId}" class="text-input-field" data-id="${elementId}" value="">
+                </div>
+                <div class="control-group">
+                    <label for="align-${elementId}">Align:</label>
+                    <select id="align-${elementId}" class="align-input" data-id="${elementId}">
+                        <option value="left" selected>Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+                <div class="control-label">Position:</div>
+                <div class="position-display">
+                    Coordinates: <span id="pos-display-${elementId}" class="coords-display">${textElement.x}, ${textElement.y}</span>
+                </div>
+                <div class="direction-controls" data-id="${elementId}">
+                    <button class="direction-btn up" data-direction="up" data-id="${elementId}">↑</button>
+                    <button class="direction-btn left" data-direction="left" data-id="${elementId}">←</button>
+                    <button class="direction-btn right" data-direction="right" data-id="${elementId}">→</button>
+                    <button class="direction-btn down" data-direction="down" data-id="${elementId}">↓</button>
+                </div>
             </div>
         `;
         
@@ -345,12 +361,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const alignInput = document.getElementById(`align-${elementId}`);
         const deleteBtn = element.querySelector('.delete-element-btn');
         const directionBtns = element.querySelectorAll('.direction-btn:not(.center)');
+        const header = element.querySelector('.text-element-header');
         
         textInput.addEventListener('input', function(e) {
             const id = parseInt(e.target.dataset.id);
             const element = textElements.find(el => el.id === id);
             if (element) {
                 element.text = e.target.value;
+                
+                // Update the title to show the text content
+                const titleElement = document.getElementById(`title-${id}`);
+                if (titleElement) {
+                    titleElement.textContent = e.target.value || `Text Element ${textElements.findIndex(el => el.id === id) + 1}`;
+                }
+                
                 // Real-time update when text changes
                 drawAllText();
             }
@@ -367,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent triggering the header click
             const id = parseInt(e.target.dataset.id);
             deleteTextElement(id);
         });
@@ -378,6 +403,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 const direction = e.target.dataset.direction;
                 moveTextElement(id, direction);
             });
+        });
+        
+        // Add collapse/expand functionality
+        header.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-element-btn')) return;
+            
+            const id = parseInt(this.dataset.id);
+            const element = textElements.find(el => el.id === id);
+            const content = this.nextElementSibling;
+            const indicator = this.querySelector('.collapse-indicator');
+            
+            if (element) {
+                element.collapsed = !element.collapsed;
+                content.classList.toggle('collapsed', element.collapsed);
+                indicator.classList.toggle('collapsed', element.collapsed);
+            }
         });
         
         // Focus the text input
@@ -395,7 +436,8 @@ document.addEventListener('DOMContentLoaded', function() {
             element.remove();
         }
         
-        // Redraw if needed
+        // Clear grid and redraw remaining text elements
+        clearGrid();
         drawAllText();
     }
     
@@ -486,6 +528,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("Draw All Text button not found");
     }
     
-    // Create initial grid
+    // Create initial grid and turn on crosshair
     createGrid();
+    updateCrosshair();
 });
