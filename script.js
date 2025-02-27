@@ -95,6 +95,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const file = e.target.files[0];
         if (!file) return;
         
+        // Parse filename to extract font size if in format "fontname_size"
+        const fileName = file.name;
+        if (fileName) {
+            const fileNameWithoutExtension = fileName.split('.')[0];
+            const parts = fileNameWithoutExtension.split('_');
+            
+            // If filename has format "name_size" where size is a number
+            if (parts.length >= 2 && !isNaN(parts[parts.length-1])) {
+                const detectedSize = parseInt(parts[parts.length-1]);
+                if (detectedSize >= 8 && detectedSize <= 72) {
+                    fontSizeInput.value = detectedSize;
+                    console.log(`Font size detected from filename: ${detectedSize}px`);
+                }
+            }
+        }
+        
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
@@ -170,22 +186,15 @@ document.addEventListener('DOMContentLoaded', function() {
             isDragging = false;
         });
         
-        // Update position input max values based on grid size
         // Update any existing text elements with new grid boundaries
         if (textElements.length > 0) {
             textElements.forEach(element => {
-                const xInput = document.getElementById(`x-${element.id}`);
-                const yInput = document.getElementById(`y-${element.id}`);
-                
-                if (xInput) xInput.max = width - 1;
-                if (yInput) yInput.max = height - 1;
-                
                 // Ensure positions are within new grid bounds
                 element.x = Math.min(element.x, width - 1);
                 element.y = Math.min(element.y, height - 1);
                 
-                if (xInput) xInput.value = element.x;
-                if (yInput) yInput.value = element.y;
+                // Update position displays
+                updatePositionDisplay(element.id);
             });
         }
     }
@@ -204,6 +213,67 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Helper function to calculate text starting position
+    function calculateTextStartPosition() {
+        const width = parseInt(gridWidthInput.value);
+        const height = parseInt(gridHeightInput.value);
+        
+        // Center position
+        const centerX = Math.floor(width / 2) - 20; // Offset to left for left alignment
+        const centerY = Math.floor(height / 2);
+        
+        // If there are existing text elements, place new ones below
+        if (textElements.length > 0) {
+            // Find the lowest Y position among text elements
+            const lowestY = Math.max(...textElements.map(el => el.y));
+            // Place new element 20px below the lowest element
+            return { x: centerX, y: lowestY + 20 };
+        }
+        
+        return { x: centerX, y: centerY };
+    }
+    
+    // Function to move text element
+    function moveTextElement(id, direction) {
+        const element = textElements.find(el => el.id === id);
+        if (!element) return;
+        
+        const gridWidth = parseInt(gridWidthInput.value);
+        const gridHeight = parseInt(gridHeightInput.value);
+        
+        switch (direction) {
+            case 'up':
+                element.y = Math.max(0, element.y - 1);
+                break;
+            case 'right':
+                element.x = Math.min(gridWidth - 1, element.x + 1);
+                break;
+            case 'down':
+                element.y = Math.min(gridHeight - 1, element.y + 1);
+                break;
+            case 'left':
+                element.x = Math.max(0, element.x - 1);
+                break;
+        }
+        
+        // Update position display
+        updatePositionDisplay(id);
+        
+        // Redraw the text immediately for real-time feedback
+        drawAllText();
+    }
+    
+    // Function to update position display
+    function updatePositionDisplay(id) {
+        const element = textElements.find(el => el.id === id);
+        if (!element) return;
+        
+        const posDisplay = document.getElementById(`pos-display-${id}`);
+        if (posDisplay) {
+            posDisplay.textContent = `${element.x}, ${element.y}`;
+        }
+    }
+    
     // Function to add a new text element
     function addTextElement() {
         console.log("Adding new text element");
@@ -216,13 +286,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create a unique ID for the element
         const elementId = Date.now();
         
+        // Calculate starting position near the center
+        const startPosition = calculateTextStartPosition();
+        
         // Create element data object
         const textElement = {
             id: elementId,
             text: '',
-            x: Math.floor(parseInt(gridWidthInput.value) / 2),
-            y: Math.floor(parseInt(gridHeightInput.value) / 2),
-            alignment: 'center',
+            x: startPosition.x,
+            y: startPosition.y,
+            alignment: 'left',
             fontSize: parseInt(fontSizeInput.value)
         };
         
@@ -243,23 +316,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label for="text-${elementId}">Text:</label>
                 <input type="text" id="text-${elementId}" class="text-input-field" data-id="${elementId}" value="">
             </div>
-            <div class="position-controls">
-                <div class="control-group">
-                    <label for="x-${elementId}">X:</label>
-                    <input type="number" id="x-${elementId}" class="x-input" min="0" max="${parseInt(gridWidthInput.value) - 1}" value="${textElement.x}" data-id="${elementId}">
-                </div>
-                <div class="control-group">
-                    <label for="y-${elementId}">Y:</label>
-                    <input type="number" id="y-${elementId}" class="y-input" min="0" max="${parseInt(gridHeightInput.value) - 1}" value="${textElement.y}" data-id="${elementId}">
-                </div>
-                <div class="control-group">
-                    <label for="align-${elementId}">Align:</label>
-                    <select id="align-${elementId}" class="align-input" data-id="${elementId}">
-                        <option value="left">Left</option>
-                        <option value="center" selected>Center</option>
-                        <option value="right">Right</option>
-                    </select>
-                </div>
+            <div class="control-group">
+                <label for="align-${elementId}">Align:</label>
+                <select id="align-${elementId}" class="align-input" data-id="${elementId}">
+                    <option value="left" selected>Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </div>
+            <div class="control-label">Position:</div>
+            <div class="position-display">
+                Coordinates: <span id="pos-display-${elementId}" class="coords-display">${textElement.x}, ${textElement.y}</span>
+            </div>
+            <div class="direction-controls" data-id="${elementId}">
+                <button class="direction-btn up" data-direction="up" data-id="${elementId}">↑</button>
+                <button class="direction-btn left" data-direction="left" data-id="${elementId}">←</button>
+                <div class="direction-btn center">•</div>
+                <button class="direction-btn right" data-direction="right" data-id="${elementId}">→</button>
+                <button class="direction-btn down" data-direction="down" data-id="${elementId}">↓</button>
             </div>
         `;
         
@@ -268,38 +342,42 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add event listeners for input changes
         const textInput = document.getElementById(`text-${elementId}`);
-        const xInput = document.getElementById(`x-${elementId}`);
-        const yInput = document.getElementById(`y-${elementId}`);
         const alignInput = document.getElementById(`align-${elementId}`);
         const deleteBtn = element.querySelector('.delete-element-btn');
+        const directionBtns = element.querySelectorAll('.direction-btn:not(.center)');
         
         textInput.addEventListener('input', function(e) {
             const id = parseInt(e.target.dataset.id);
             const element = textElements.find(el => el.id === id);
-            if (element) element.text = e.target.value;
-        });
-        
-        xInput.addEventListener('input', function(e) {
-            const id = parseInt(e.target.dataset.id);
-            const element = textElements.find(el => el.id === id);
-            if (element) element.x = parseInt(e.target.value);
-        });
-        
-        yInput.addEventListener('input', function(e) {
-            const id = parseInt(e.target.dataset.id);
-            const element = textElements.find(el => el.id === id);
-            if (element) element.y = parseInt(e.target.value);
+            if (element) {
+                element.text = e.target.value;
+                // Real-time update when text changes
+                drawAllText();
+            }
         });
         
         alignInput.addEventListener('change', function(e) {
             const id = parseInt(e.target.dataset.id);
             const element = textElements.find(el => el.id === id);
-            if (element) element.alignment = e.target.value;
+            if (element) {
+                element.alignment = e.target.value;
+                // Real-time update when alignment changes
+                drawAllText();
+            }
         });
         
         deleteBtn.addEventListener('click', function(e) {
             const id = parseInt(e.target.dataset.id);
             deleteTextElement(id);
+        });
+        
+        // Add event listeners for direction buttons
+        directionBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const id = parseInt(e.target.dataset.id);
+                const direction = e.target.dataset.direction;
+                moveTextElement(id, direction);
+            });
         });
         
         // Focus the text input
@@ -351,8 +429,16 @@ document.addEventListener('DOMContentLoaded', function() {
             offscreenCtx.textBaseline = 'top';
             offscreenCtx.textAlign = element.alignment;
             
+            // Calculate x position based on alignment
+            let xPos = element.x;
+            if (element.alignment === 'center') {
+                // No adjustment needed for center alignment
+            } else if (element.alignment === 'right') {
+                // No adjustment needed for right alignment
+            }
+            
             // Draw the text at its position
-            offscreenCtx.fillText(element.text, element.x, element.y);
+            offscreenCtx.fillText(element.text, xPos, element.y);
         });
         
         // Get image data
