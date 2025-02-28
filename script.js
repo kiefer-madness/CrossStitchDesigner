@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let grid = [];
     let isDragging = false;
     let isCrosshairVisible = true;
+    let isHoopVisible = true;
     let currentBitmapFont = null;
     let textElements = [];
     
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const createGridBtn = document.getElementById('createGridBtn');
     const clearGridBtn = document.getElementById('clearGridBtn');
     const toggleCrosshairBtn = document.getElementById('toggleCrosshairBtn');
+    const toggleHoopBtn = document.getElementById('toggleHoopBtn');
     const pixelGrid = document.getElementById('pixelGrid');
     const gridContainer = document.getElementById('gridContainer');
     const fontFileInput = document.getElementById('fontFile');
@@ -59,6 +61,12 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCrosshair();
     }
     
+    // Function to toggle hoop outline
+    function toggleHoop() {
+        isHoopVisible = !isHoopVisible;
+        updateHoopOutline();
+    }
+    
     // Function to update crosshair
     function updateCrosshair() {
         const width = parseInt(gridWidthInput.value);
@@ -85,6 +93,45 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let y = 0; y < height; y++) {
                 if (grid[y] && grid[y][centerX]) {
                     grid[y][centerX].classList.add('crosshair-v');
+                }
+            }
+        }
+    }
+    
+    // Function to update the elliptical hoop outline
+    function updateHoopOutline() {
+        const width = parseInt(gridWidthInput.value);
+        const height = parseInt(gridHeightInput.value);
+        
+        // Remove existing hoop outline classes
+        document.querySelectorAll('.cell.hoop-outline').forEach(cell => {
+            cell.classList.remove('hoop-outline');
+        });
+        
+        if (!isHoopVisible) return;
+        
+        // Calculate center position
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
+        
+        // Calculate radius for the ellipse (80% of grid dimensions)
+        const rx = Math.floor(width * 0.5);  // 40% of width as x-radius
+        const ry = Math.floor(height * 0.5); // 40% of height as y-radius
+        
+        // Add hoop outline to appropriate cells
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                // Ellipse equation: (x-h)²/a² + (y-k)²/b² = 1
+                // where (h,k) is the center, a is x-radius, b is y-radius
+                const normalizedX = (x - centerX) / rx;
+                const normalizedY = (y - centerY) / ry;
+                const distanceSquared = normalizedX * normalizedX + normalizedY * normalizedY;
+                
+                // Check if the point is close to the ellipse boundary
+                // Value close to 1 means it's on the ellipse
+                // Using a smaller tolerance (0.03) for a thinner outline
+                if (Math.abs(distanceSquared - 1) < 0.03 && grid[y] && grid[y][x]) {
+                    grid[y][x].classList.add('hoop-outline');
                 }
             }
         }
@@ -184,6 +231,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set up crosshair position
         updateCrosshair();
+        
+        // Set up hoop outline
+        updateHoopOutline();
         
         // Add mouse up event to stop dragging
         document.addEventListener('mouseup', function() {
@@ -319,12 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h4 class="text-element-title" id="title-${elementId}">Text Element ${textElements.length}</h4>
                 </div>
                 <button class="delete-element-btn" data-id="${elementId}">
-                    <div class="trash-icon">
-                        <div class="trash-icon-body"></div>
-                        <div class="trash-icon-line"></div>
-                        <div class="trash-icon-line"></div>
-                        <div class="trash-icon-line"></div>
-                    </div>
+                    <span>X</span>
                 </button>
             </div>
             <div class="text-element-content">
@@ -396,13 +441,49 @@ document.addEventListener('DOMContentLoaded', function() {
             deleteTextElement(id);
         });
         
-        // Add event listeners for direction buttons
+        // Add event listeners for direction buttons with continuous movement
+        let moveInterval = null;
+        const moveDelay = 100; // milliseconds between movements
+        
+        function startContinuousMove(id, direction) {
+            // Clear any existing interval first
+            if (moveInterval) clearInterval(moveInterval);
+            
+            // Move once immediately
+            moveTextElement(id, direction);
+            
+            // Set up interval for continuous movement
+            moveInterval = setInterval(() => {
+                moveTextElement(id, direction);
+            }, moveDelay);
+        }
+        
+        function stopContinuousMove() {
+            if (moveInterval) {
+                clearInterval(moveInterval);
+                moveInterval = null;
+            }
+        }
+        
         directionBtns.forEach(btn => {
-            btn.addEventListener('click', function(e) {
+            // Start moving on mousedown
+            btn.addEventListener('mousedown', function(e) {
                 const id = parseInt(e.target.dataset.id);
                 const direction = e.target.dataset.direction;
-                moveTextElement(id, direction);
+                startContinuousMove(id, direction);
             });
+            
+            // Also start moving on touchstart (for mobile)
+            btn.addEventListener('touchstart', function(e) {
+                const id = parseInt(e.target.dataset.id);
+                const direction = e.target.dataset.direction;
+                startContinuousMove(id, direction);
+            });
+            
+            // Stop moving on mouseup, mouseleave, and touchend
+            btn.addEventListener('mouseup', stopContinuousMove);
+            btn.addEventListener('mouseleave', stopContinuousMove);
+            btn.addEventListener('touchend', stopContinuousMove);
         });
         
         // Add collapse/expand functionality
@@ -509,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
     createGridBtn.addEventListener('click', createGrid);
     clearGridBtn.addEventListener('click', clearGrid);
     toggleCrosshairBtn.addEventListener('click', toggleCrosshair);
+    toggleHoopBtn.addEventListener('click', toggleHoop);
     fontFileInput.addEventListener('change', loadBitmapFont);
     toggleTextModeBtn.addEventListener('click', toggleTextMode);
     
