@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cross stitch designer</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="fonts.js"></script>
 </head>
 <body>
     <div class="container">
@@ -61,8 +62,11 @@
                 <h2 class="section-title">Font Settings</h2>
                 <div class="controls">
                     <div class="control-group">
-                        <label for="fontFile">Font File:</label>
-                        <input type="file" id="fontFile" accept=".ttf,.otf">
+                        <label for="fontSelect">Font:</label>
+                        <select id="fontSelect" class="font-select">
+                            <option value="">Select a font</option>
+                            <!-- Font options will be added dynamically -->
+                        </select>
                     </div>
                     
                     <div class="controls-row">

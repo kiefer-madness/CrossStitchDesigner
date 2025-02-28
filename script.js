@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleHoopBtn = document.getElementById('toggleHoopBtn');
     const pixelGrid = document.getElementById('pixelGrid');
     const gridContainer = document.getElementById('gridContainer');
-    const fontFileInput = document.getElementById('fontFile');
+    const fontSelect = document.getElementById('fontSelect');
     const fontSizeInput = document.getElementById('fontSize');
     const toggleTextModeBtn = document.getElementById('toggleTextMode');
     const textInputContainer = document.getElementById('textInputContainer');
@@ -585,13 +585,100 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    function initializeFontDropdown() {
+        const fontSelect = document.getElementById('fontSelect');
+        
+        // Sort fonts alphabetically by displayName
+        availableFonts.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        
+        // Create option for each font
+        availableFonts.forEach(font => {
+            const option = document.createElement('option');
+            option.value = font.filename;
+            option.textContent = font.displayName;
+            option.style.fontFamily = font.name; // Apply the font to the option text
+            fontSelect.appendChild(option);
+        });
+        
+        // Add change event listener
+        fontSelect.addEventListener('change', function() {
+            if (this.value) {
+                loadFontFromFolder(this.value);
+            }
+        });
+    }
+    
+    function loadFontFromFolder(filename) {
+        // Construct the full path to the font file
+        const fontPath = `fonts/${filename}`;
+        
+        // Create a FontFace object
+        const fontFace = new FontFace('CustomFont', `url(${fontPath})`);
+        
+        // Load the font
+        fontFace.load().then(function(loadedFace) {
+            document.fonts.add(loadedFace);
+            currentBitmapFont = 'CustomFont';
+            
+            // Get font name from the filename
+            const selectedFont = availableFonts.find(font => font.filename === filename);
+            const fontName = selectedFont ? selectedFont.displayName : filename;
+            const fontSize = selectedFont ? selectedFont.defaultSize : 16;
+            fontSizeInput.value = fontSize;
+            
+            toggleTextModeBtn.disabled = false;
+        }).catch(function(error) {
+            alert('Error loading font: ' + error.message);
+        });
+    }
+    
+    function preloadFonts() {
+        // Create a hidden div to preload fonts
+        const preloadDiv = document.createElement('div');
+        preloadDiv.style.visibility = 'hidden';
+        preloadDiv.style.position = 'absolute';
+        preloadDiv.style.top = '-9999px';
+        preloadDiv.style.left = '-9999px';
+        document.body.appendChild(preloadDiv);
+        
+        // Create promises for each font
+        const fontPromises = availableFonts.map(font => {
+            const fontPath = `fonts/${font.filename}`;
+            const fontFace = new FontFace(font.name, `url(${fontPath})`);
+            
+            return fontFace.load().then(loadedFace => {
+                document.fonts.add(loadedFace);
+                
+                // Add a sample text with this font
+                const sampleText = document.createElement('div');
+                sampleText.style.fontFamily = font.name;
+                sampleText.textContent = font.displayName;
+                preloadDiv.appendChild(sampleText);
+                
+                return loadedFace;
+            }).catch(error => {
+                console.error(`Error preloading font ${font.name}:`, error);
+                return null;
+            });
+        });
+        
+        // Wait for all fonts to load
+        Promise.all(fontPromises).then(loadedFonts => {
+            console.log(`Preloaded ${loadedFonts.filter(f => f !== null).length} fonts`);
+            
+            // Remove the preload div after a short delay to ensure fonts are registered
+            setTimeout(() => {
+                document.body.removeChild(preloadDiv);
+            }, 1000);
+        });
+    }
     
     // Attach event listeners
     createGridBtn.addEventListener('click', createGrid);
     clearGridBtn.addEventListener('click', clearGrid);
     toggleCrosshairBtn.addEventListener('click', toggleCrosshair);
     toggleHoopBtn.addEventListener('click', toggleHoop);
-    fontFileInput.addEventListener('change', loadBitmapFont);
     toggleTextModeBtn.addEventListener('click', toggleTextMode);
     
     if (addTextElementBtn) {
@@ -613,4 +700,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create initial grid and turn on crosshair
     createGrid();
     updateCrosshair();
+    preloadFonts();
+    initializeFontDropdown();
 });
