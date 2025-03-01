@@ -114,12 +114,46 @@ select {
     background-color: white;
 }
 
+.font-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.font-select option {
+    padding: 8px;
+    font-size: 14px;
+}
+
+.font-select optgroup {
+    font-weight: bold;
+    color: #555;
+    background-color: #f5f5f5;
+    padding: 5px;
+}
+
+.element-font-select {
+    max-width: 150px;
+}
+
+.element-font-size {
+    width: 50px;
+}
+
 .text-element {
     background-color: #f8f8f8;
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 10px;
     margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Make the text panel visible by default */
+.text-input {
+    display: block;
 }
 
 .text-element-header {
@@ -295,10 +329,6 @@ select {
     background-blend-mode: overlay;
 }
 
-.text-input {
-    display: none;
-}
-
 .controls-row {
     display: flex;
     flex-wrap: wrap;
@@ -309,6 +339,12 @@ select {
 .controls-area button {
     flex: 1;
     min-width: 80px;
+}
+
+.full-width-btn {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
 }
 
 /* New styles for direction buttons */
@@ -385,17 +421,4 @@ select {
 .cell.filled.hoop-outline {
     border: 2px solid rgba(255, 0, 0, 0.5);
     background-blend-mode: overlay;
-}
-
-.font-select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: white;
-}
-
-.font-select option {
-    padding: 8px;
-    font-size: 14px;
 }
